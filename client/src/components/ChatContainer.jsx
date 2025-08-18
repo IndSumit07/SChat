@@ -201,7 +201,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
           src={assets.send_button}
           className="w-7 cursor-pointer"
           alt="send-btn"
-          onClick={send}
+          onClick={() => send()}
         />
       </div>
     </div>
