@@ -3,24 +3,30 @@ import assets from '../../public/assets'
 import api from "../lib/api.js";
 import { AuthContext } from "../context/AuthContext.jsx";
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const RightSidebar = ({ selectedUser }) => {
   const { logout } = useContext(AuthContext);
   const navigate = useNavigate();
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => { logout(); toast.success("Logged out successfully"); navigate('/login'); };
   const [media, setMedia] = useState([]);
+  const [loadingMedia, setLoadingMedia] = useState(false);
 
   useEffect(() => {
     (async () => {
       if (!selectedUser?._id) return;
       try {
+        setLoadingMedia(true);
         const res = await api.get(`/messages/${selectedUser._id}`);
         if (res.data?.success) {
           const imgs = (res.data.messages || []).filter(m => m.image).map(m => m.image);
           setMedia(imgs);
         }
       } catch (e) {
+        toast.error("Failed to load media");
         setMedia([]);
+      } finally {
+        setLoadingMedia(false);
       }
     })();
   }, [selectedUser?._id]);
@@ -38,7 +44,11 @@ const RightSidebar = ({ selectedUser }) => {
       <hr className='border-gray-700 my-4' />
       <div className='px-5 text-xs'>
         <p>Media</p>
-        {media.length === 0 ? (
+        {loadingMedia ? (
+          <div className="flex items-center justify-center py-4">
+            <div className="w-5 h-5 border-2 border-gray-600 border-t-white rounded-full animate-spin"></div>
+          </div>
+        ) : media.length === 0 ? (
           <p className='text-gray-400 mt-2'>No media shared yet</p>
         ) : (
           <div className='mt-2 max-h-[200px] overflow-y-scroll grid grid-cols-2 gap-4 opacity-80 '>

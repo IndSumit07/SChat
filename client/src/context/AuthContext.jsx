@@ -37,6 +37,11 @@ export function AuthProvider({ children }) {
         localStorage.setItem("token", jwtToken);
     }, []);
 
+    const updateUser = useCallback((updatedUserData) => {
+        setUser(updatedUserData);
+        localStorage.setItem("user", JSON.stringify(updatedUserData));
+    }, []);
+
     const logout = useCallback(() => {
         setUser(null);
         setToken(null);
@@ -46,8 +51,8 @@ export function AuthProvider({ children }) {
     }, [socket]);
 
     const value = useMemo(
-        () => ({ user, token, socket, onlineUsers, login, logout }),
-        [user, token, socket, onlineUsers, login, logout]
+        () => ({ user, token, socket, onlineUsers, login, logout, updateUser }),
+        [user, token, socket, onlineUsers, login, logout, updateUser]
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
