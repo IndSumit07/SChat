@@ -1,14 +1,13 @@
 import React, { useContext, useEffect, useState } from 'react'
 import assets from '../../public/assets'
 import { useNavigate } from "react-router-dom"
-import api from "../lib/api.js";
+import api from "../lib/api.js"
 import { AuthContext } from "../context/AuthContext.jsx";
 import toast from 'react-hot-toast';
 
 const Sidebar = ({ selectedUser, setSelectedUser }) => {
-
   const navigate = useNavigate();
-  const { logout, onlineUsers } = useContext(AuthContext);
+  const { logout, onlineUsers, isAuthenticated } = useContext(AuthContext);
   const [users, setUsers] = useState([]);
   const [unseen, setUnseen] = useState({});
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -20,42 +19,46 @@ const Sidebar = ({ selectedUser, setSelectedUser }) => {
   }
 
   useEffect(() => {
-    (async () => {
-      try {
-        setLoadingUsers(true);
-        const res = await api.get("/messages/users");
-        if (res.data?.success) {
-          setUsers(res.data.users || []);
-          setUnseen(res.data.unseenMessages || {});
+    if (isAuthenticated) {
+      (async () => {
+        try {
+          setLoadingUsers(true);
+          const res = await api.get("/messages/users");
+          if (res.data?.success) {
+            setUsers(res.data.users || []);
+            setUnseen(res.data.unseenMessages || {});
+          }
+        } catch (e) {
+          toast.error("Failed to load users");
+        } finally {
+          setLoadingUsers(false);
         }
-      } catch (e) {
-        toast.error("Failed to load users");
-      } finally {
-        setLoadingUsers(false);
-      }
-    })();
-  }, []);
+      })();
+    }
+  }, [isAuthenticated]);
+
   return (
     <div className={`bg-gray-900/40 h-full p-3 sm:p-5 rounded-r-xl overflow-y-scroll text-white ${selectedUser ? "max-md:hidden" : ""}`}>
-      <div className='pb-4 sm:pb-5'>
-        <div className='flex justify-between items-center'>
-          <h1 className='text-xl sm:text-2xl font-bold'>SChat</h1>
-          <div className='relative py-2 group'>
-            <img src={assets.menu_icon} alt="Menu" className='max-h-4 sm:max-h-5 cursor-pointer' />
-            <div className='absolute top-full right-0 z-20 w-28 sm:w-32 p-3 sm:p-5 rounded-md bg-gray-900 border border-gray-700 text-gray-100 hidden group-hover:block text-xs sm:text-sm'>
-              <p onClick={() => {
-                navigate("/profile")
-              }} className='cursor-pointer'>Edit Profile</p>
-              <hr className='my-2 border-t border-gray-500' />
-              <p onClick={handleLogout} className='cursor-pointer'>Logout</p>
-            </div>
+      {/* header */}
+      <div className='flex items-center justify-between mb-6 sm:mb-8'>
+        <h1 className='text-xl sm:text-2xl font-bold text-white'>SChat</h1>
+        <div className='relative group'>
+          <img src={assets.menu_icon} alt="" className='w-5 sm:w-6 cursor-pointer' />
+          <div className='absolute right-0 top-full mt-2 w-32 bg-gray-800 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10'>
+            <button onClick={handleLogout} className='w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 rounded-lg transition-colors'>
+              Logout
+            </button>
           </div>
         </div>
-        <div className='bg-gray-800/60 rounded-full flex items-center gap-2 py-2 sm:py-3 px-3 sm:px-4 mt-4 sm:mt-5'>
-          <img src={assets.search_icon} alt="Search" className='w-3 flex-shrink-0' />
-          <input type="text" className='bg-transparent border-none outline-none text-white text-xs placeholder-[#c8c8c8] flex-1' placeholder='Search User...' />
-        </div>
       </div>
+
+      {/* search */}
+      <div className='relative mb-6 sm:mb-8'>
+        <img src={assets.search_icon} alt="" className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
+        <input type="text" placeholder='Search or start new chat' className='w-full pl-10 pr-4 py-2 sm:py-3 bg-gray-800/40 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-600 text-sm sm:text-base' />
+      </div>
+
+      {/* users list */}
       <div className='flex flex-col'>
         {loadingUsers ? (
           <div className="flex items-center justify-center py-6 sm:py-8">

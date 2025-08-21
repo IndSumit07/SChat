@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useEffect, useState, useContext } from 'react'
 import assets from '../../public/assets'
 import api from "../lib/api.js";
 import { AuthContext } from "../context/AuthContext.jsx";
@@ -6,15 +6,15 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const RightSidebar = ({ selectedUser }) => {
-  const { logout } = useContext(AuthContext);
+  const { logout, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
   const handleLogout = () => { logout(); toast.success("Logged out successfully"); navigate('/login'); };
   const [media, setMedia] = useState([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
 
   useEffect(() => {
+    if (!selectedUser?._id || !isAuthenticated) return;
     (async () => {
-      if (!selectedUser?._id) return;
       try {
         setLoadingMedia(true);
         const res = await api.get(`/messages/${selectedUser._id}`);
@@ -29,19 +29,20 @@ const RightSidebar = ({ selectedUser }) => {
         setLoadingMedia(false);
       }
     })();
-  }, [selectedUser?._id]);
+  }, [selectedUser?._id, isAuthenticated]);
 
   return selectedUser && (
     <div className={`bg-gray-900/40 text-white w-full relative overflow-y-scroll ${selectedUser ? "max-md:hidden" : ""} `}>
-      <div className='pt-16 flex flex-col items-center gap-2 text-xs font-light mx-auto'>
-        <img src={selectedUser?.profilePic || assets.avatar_icon} alt="" className='w-20 aspect-[1/1] rounded-full ' />
-
-        <h1 className='px-10 text-xl font-medium mx-auto flex items-center gap-2 '>
-          <p className='w-2 h-2 rounded-full bg-green-500 '></p>
-          {selectedUser.fullname}</h1>
-        <p className='px-10 mx-auto'>{selectedUser.bio}</p>
+      {/* profile details */}
+      <div className='p-5 border-b border-gray-700'>
+        <div className='flex flex-col items-center gap-3'>
+          <img src={selectedUser?.profilePic || assets.avatar_icon} alt="" className='w-16 h-16 rounded-full' />
+          <h3 className='text-lg font-semibold'>{selectedUser?.fullname}</h3>
+          <p className='text-sm text-gray-400 text-center'>{selectedUser?.bio || "No bio available"}</p>
+        </div>
       </div>
-      <hr className='border-gray-700 my-4' />
+
+      {/* media section */}
       <div className='px-5 text-xs'>
         <p>Media</p>
         {loadingMedia ? (

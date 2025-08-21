@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 
 const ChatContainer = ({ selectedUser, setSelectedUser }) => {
   const scrollEnd = useRef();
-  const { user, socket } = useContext(AuthContext);
+  const { user, socket, isAuthenticated } = useContext(AuthContext);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [imageDataUrl, setImageDataUrl] = useState("");
@@ -23,10 +23,10 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
     }
   }, [messages]);
 
-  // load messages when user selected
+  // load messages when user selected and authenticated
   useEffect(() => {
+    if (!selectedUser?._id || !isAuthenticated) return;
     (async () => {
-      if (!selectedUser?._id) return;
       try {
         setLoadingMessages(true);
         const res = await api.get(`/messages/${selectedUser._id}`);
@@ -39,12 +39,12 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
         setLoadingMessages(false);
       }
     })();
-  }, [selectedUser?._id]);
+  }, [selectedUser?._id, isAuthenticated]);
 
   // load media for mobile modal
   useEffect(() => {
+    if (!selectedUser?._id || !showMediaModal || !isAuthenticated) return;
     (async () => {
-      if (!selectedUser?._id || !showMediaModal) return;
       try {
         setLoadingMedia(true);
         const res = await api.get(`/messages/${selectedUser._id}`);
@@ -59,22 +59,22 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
         setLoadingMedia(false);
       }
     })();
-  }, [selectedUser?._id, showMediaModal]);
+  }, [selectedUser?._id, showMediaModal, isAuthenticated]);
 
   // realtime new messages
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !isAuthenticated) return;
     const handler = (newMessage) => {
       if (
         selectedUser?._id &&
-        (newMessage?.senderId === selectedUser._id || newMessage?.recieverId === selectedUser._id)
+        (newMessage?.senderId === selectedUser._id || newMessage?.receiverId === selectedUser._id)
       ) {
         setMessages((prev) => [...prev, newMessage]);
       }
     };
     socket.on("newMessage", handler);
     return () => socket.off("newMessage", handler);
-  }, [socket, selectedUser?._id]);
+  }, [socket, selectedUser?._id, isAuthenticated]);
 
   const currentUserId = useMemo(() => user?._id, [user?._id]);
 
@@ -94,7 +94,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
 
   const send = async (imageOverride) => {
     const imageToSend = imageOverride || imageDataUrl;
-    if (!selectedUser?._id || (!text && !imageToSend) || sending) return;
+    if (!selectedUser?._id || (!text && !imageToSend) || sending || !isAuthenticated) return;
     try {
       setSending(true);
       const res = await api.post(`/messages/send/${selectedUser._id}`, {
@@ -113,8 +113,6 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
       setSending(false);
     }
   };
-
-  // current user id from auth
 
   return selectedUser ? (
     <div className="h-full overflow-hidden relative backdrop-blur-lg">
@@ -234,10 +232,10 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
               }
             }}
             className="flex-1 text-sm p-2 border-none rounded-lg outline-none text-white placeholder-gray-400 bg-transparent"
-            disabled={sending}
+            disabled={sending || !isAuthenticated}
           />
-          <input type="file" id="image" accept="image/png, image/jpeg" hidden onChange={(e) => onSelectImage(e.target.files?.[0])} disabled={sending} />
-          <label htmlFor="image" className={sending ? "cursor-not-allowed opacity-50" : "cursor-pointer"}>
+          <input type="file" id="image" accept="image/png, image/jpeg" hidden onChange={(e) => onSelectImage(e.target.files?.[0])} disabled={sending || !isAuthenticated} />
+          <label htmlFor="image" className={sending || !isAuthenticated ? "cursor-not-allowed opacity-50" : "cursor-pointer"}>
             <img
               src={assets.gallery_icon}
               alt=""
@@ -247,7 +245,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
         </div>
         <button
           onClick={() => send()}
-          disabled={sending || (!text && !imageDataUrl)}
+          disabled={sending || (!text && !imageDataUrl) || !isAuthenticated}
           className="flex items-center justify-center w-7 h-7 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {sending ? (
